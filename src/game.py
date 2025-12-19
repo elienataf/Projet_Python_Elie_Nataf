@@ -59,7 +59,11 @@ class Game:
         # ---- Sprite archéologue (APRÈS set_mode + APRÈS self.arch) ----
         assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
         self.arch_img = pygame.image.load(assets_dir / "archeo.png").convert_alpha()
-        self.arch_img = pygame.transform.scale(self.arch_img, (self.arch.w, self.arch.h))
+        SPRITE_SCALE = (48, 64)  # largeur, hauteur
+        self.arch_img = pygame.transform.scale(self.arch_img, SPRITE_SCALE)
+        self.arch.w = 48
+        self.arch.h = 64
+
 
         # ---- World layout ----
         self.world_bounds = pygame.Rect(20, 120, self.WIDTH - 40, self.HEIGHT - 160)
