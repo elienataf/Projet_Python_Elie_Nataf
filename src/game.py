@@ -17,6 +17,14 @@ class Game:
 
     def __init__(self) -> None:
         pygame.init()
+
+        self.assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
+
+        pygame.mixer.init()
+        pygame.mixer.music.load(self.assets_dir / "sfx" / "son_egypt.ogg")
+        pygame.mixer.music.set_volume(0.25)
+        pygame.mixer.music.play(-1)
+
         pygame.display.set_caption("Ruines Mythologiques")
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         self.clock = pygame.time.Clock()
@@ -25,15 +33,12 @@ class Game:
         self.font = pygame.font.SysFont("arial", 22)
         self.small = pygame.font.SysFont("arial", 18)
 
-        self.assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
         self.save_data = load_save()
 
         self.world_bounds = pygame.Rect(20, 130, self.WIDTH - 40, self.HEIGHT - 170)
 
         self.bg_world = pygame.image.load(self.assets_dir / "bg_desert.jpeg").convert()
-        self.bg_world = pygame.transform.scale(
-            self.bg_world, (self.world_bounds.w, self.world_bounds.h)
-        )
+        self.bg_world = pygame.transform.scale(self.bg_world, (self.world_bounds.w, self.world_bounds.h))
 
         self.rooms = [
             Room(1, "Salle I — Le Sphinx", enigma_sphinx(), 0),
@@ -58,12 +63,12 @@ class Game:
         wx, wy, ww, wh = self.world_bounds
 
         self.arch = Archaeologist(0, 0)
-        self.arch.w = 45
+        self.arch.w = 30
         self.arch.h = 52
         self.arch.speed = 3.0
 
         self.arch_img = pygame.image.load(self.assets_dir / "archeo.png").convert_alpha()
-        self.arch_img = pygame.transform.scale(self.arch_img, (self.arch.w, self.arch.h))
+        self.arch_img = pygame.transform.scale(self.arch_img, (48, 64))
 
         self.obstacles = [
             pygame.Rect(wx + 250, wy + 85, 95, 220),
@@ -82,10 +87,8 @@ class Game:
 
         self.near_door_id = None
 
-        spawn_x = wx + 40
-        spawn_y = wy + wh - 90
-        self.arch.x = spawn_x
-        self.arch.y = spawn_y
+        self.arch.x = wx + 40
+        self.arch.y = wy + wh - 90
 
         for _ in range(50):
             if any(self.arch.rect().colliderect(o) for o in self.obstacles):
@@ -109,6 +112,7 @@ class Game:
         write_save(self.save_data)
 
     def save_and_quit(self) -> None:
+        pygame.mixer.music.stop()
         self.save()
         self.running = False
 
@@ -237,15 +241,15 @@ class Game:
         pygame.draw.rect(self.screen, (28, 30, 48), header, border_radius=16)
         pygame.draw.rect(self.screen, (90, 95, 130), header, 2, border_radius=16)
 
-        title = self.font.render("Ruines Mythologiques — Map", True, (245, 245, 245))
-        self.screen.blit(title, (header.x + 16, header.y + 14))
-
         elapsed = (pygame.time.get_ticks() - self.start_ticks) // 1000
+        title = self.font.render("Ruines Mythologiques — Map", True, (245, 245, 245))
         stats = self.small.render(
             f"Score: {self.score}  Temps: {elapsed}s  Artefacts: {self.player.artifacts}  Salles: {len(self.rooms_done)}/3",
             True,
             (210, 210, 210),
         )
+
+        self.screen.blit(title, (header.x + 16, header.y + 14))
         self.screen.blit(stats, (header.x + 16, header.y + 60))
 
         self.screen.blit(self.bg_world, world.topleft)
@@ -258,6 +262,7 @@ class Game:
             color = (85, 70, 45)
             if rid in self.rooms_done:
                 color = (45, 85, 70)
+
             pygame.draw.rect(self.screen, color, door, border_radius=14)
             pygame.draw.rect(self.screen, (235, 235, 235), door, 2, border_radius=14)
 
@@ -282,7 +287,7 @@ class Game:
             self.screen.blit(t, (box.x + 16, box.y + 16))
 
             y = box.y + 50
-            for line in self.wrap_text(room.enigma.question, box.w - 32, self.small):
+            for line in room.enigma.question.split("\n"):
                 self.screen.blit(self.small.render(line, True, (230, 230, 230)), (box.x + 16, y))
                 y += 22
 
