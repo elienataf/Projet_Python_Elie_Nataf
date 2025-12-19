@@ -1,10 +1,12 @@
 import sys
 import pygame
+import pathlib
 
 from player import Player
 from utils import load_save, write_save
 from room import Room
 from enigma import enigma_sphinx, enigma_icarus, enigma_anubis
+from archaeologist import Archaeologist
 
 
 class Game:
@@ -40,28 +42,55 @@ class Game:
         self.small = pygame.font.SysFont("arial", 18)
 
         # ---- State machine ----
-        # HUB: choisir une salle / voir progression
+        # EXPLORE: déplacement perso + entrée dans les salles via portes
         # ENIGMA: répondre au texte
         # VICTORY: fin
-        self.state = "HUB"
+        self.state = "EXPLORE"
 
         # ---- Enigma input ----
         self.input_text = ""
         self.max_len = 40
         self.feedback = ""
 
+        # ---- Character (créé AVANT le scale de l'image) ----
+        pos = self.save_data.get("archaeologist", {"x": 120, "y": 260})
+        self.arch = Archaeologist(x=float(pos.get("x", 120)), y=float(pos.get("y", 260)))
+
+        # ---- Sprite archéologue (APRÈS set_mode + APRÈS self.arch) ----
+        assets_dir = pathlib.Path(__file__).resolve().parent.parent / "assets"
+        self.arch_img = pygame.image.load(assets_dir / "archeo.png").convert_alpha()
+        self.arch_img = pygame.transform.scale(self.arch_img, (self.arch.w, self.arch.h))
+
+        # ---- World layout ----
+        self.world_bounds = pygame.Rect(20, 120, self.WIDTH - 40, self.HEIGHT - 160)
+
+        # Obstacles simples (murs/piliers)
+        self.obstacles = [
+            pygame.Rect(250, 230, 80, 160),
+            pygame.Rect(520, 200, 90, 90),
+            pygame.Rect(650, 320, 140, 60),
+        ]
+
+        # Portes / zones d’entrée des salles (se mettre dedans + E)
+        self.doors = {
+            1: pygame.Rect(70, 150, 120, 60),
+            2: pygame.Rect(70, 230, 120, 60),
+            3: pygame.Rect(70, 310, 120, 60),
+        }
+
     # -------------------- Persistence --------------------
     def save(self) -> None:
         self.save_data["player"] = self.player.to_dict()
         self.save_data["rooms_done"] = sorted(self.rooms_done)
         self.save_data["selected_room_id"] = self.selected_room_id
+        self.save_data["archaeologist"] = {"x": round(self.arch.x, 2), "y": round(self.arch.y, 2)}
         write_save(self.save_data)
 
     def save_and_quit(self) -> None:
         self.save()
         self.running = False
 
-    # -------------------- Data helpers --------------------
+    # -------------------- Helpers --------------------
     def get_room(self, room_id: int) -> Room:
         for r in self.rooms:
             if r.room_id == room_id:
@@ -123,27 +152,30 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     self.save_and_quit()
 
-                if self.state == "HUB":
-                    self.handle_hub_keys(event)
+                if self.state == "EXPLORE":
+                    self.handle_explore_keys(event)
                 elif self.state == "ENIGMA":
                     self.handle_enigma_keys(event)
                 elif self.state == "VICTORY":
                     if event.key == pygame.K_RETURN:
-                        self.state = "HUB"
+                        self.state = "EXPLORE"
 
-    def handle_hub_keys(self, event: pygame.event.Event) -> None:
-        if event.key == pygame.K_1:
-            self.selected_room_id = 1
-            self.feedback = ""
-        if event.key == pygame.K_2:
-            self.selected_room_id = 2
-            self.feedback = ""
-        if event.key == pygame.K_3:
-            self.selected_room_id = 3
-            self.feedback = ""
-
+    def handle_explore_keys(self, event: pygame.event.Event) -> None:
         if event.key == pygame.K_e:
-            room = self.get_room(self.selected_room_id)
+            arch_r = self.arch.rect()
+
+            chosen = None
+            for rid, door in self.doors.items():
+                if arch_r.colliderect(door):
+                    chosen = rid
+                    break
+
+            if chosen is None:
+                self.feedback = "Va sur une porte puis appuie sur E."
+                return
+
+            self.selected_room_id = chosen
+            room = self.get_room(chosen)
 
             if room.room_id in self.rooms_done:
                 self.feedback = "✅ Salle déjà terminée."
@@ -188,9 +220,9 @@ class Game:
             self.rooms_done.add(room.room_id)
             self.player.artifacts += 1
 
-            self.feedback = "✅ Correct ! Artefact obtenu. Retour au camp de base."
+            self.feedback = "✅ Correct ! Artefact obtenu. Retour à l'exploration."
             self.input_text = ""
-            self.state = "HUB"
+            self.state = "EXPLORE"
 
             if self.all_rooms_done():
                 self.state = "VICTORY"
@@ -201,96 +233,87 @@ class Game:
             self.input_text = ""
 
     def update(self) -> None:
-        pass
+        if self.state == "EXPLORE":
+            keys = pygame.key.get_pressed()
+
+            dx = 0.0
+            dy = 0.0
+            if keys[pygame.K_LEFT] or keys[pygame.K_q]:
+                dx -= self.arch.speed
+            if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                dx += self.arch.speed
+            if keys[pygame.K_UP] or keys[pygame.K_z]:
+                dy -= self.arch.speed
+            if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                dy += self.arch.speed
+
+            if dx != 0 or dy != 0:
+                self.arch.move(dx, dy, self.obstacles, self.world_bounds)
 
     # -------------------- Draw --------------------
     def draw(self) -> None:
         self.draw_gradient()
 
         header = pygame.Rect(20, 16, self.WIDTH - 40, 92)
-        left = pygame.Rect(20, 120, 380, self.HEIGHT - 160)
-        main = pygame.Rect(420, 120, self.WIDTH - 440, self.HEIGHT - 160)
         footer = pygame.Rect(20, self.HEIGHT - 36, self.WIDTH - 40, 22)
+        world = self.world_bounds
 
         # Header
         self.draw_panel(header, None)
-        title = self.font.render("🏺 Ruines Mythologiques — Camp de base", True, (245, 245, 245))
+        title = self.font.render("🏺 Ruines Mythologiques — Exploration", True, (245, 245, 245))
         self.screen.blit(title, (header.x + 16, header.y + 14))
 
         sub = self.small.render(
-            "1/2/3 : choisir une salle  |  E : entrer  |  TAB : indice  |  ESC : quitter",
+            "Déplacement: ZQSD / Flèches  |  E: entrer  |  TAB: indice  |  ESC: quitter",
             True,
             (180, 180, 180),
         )
         self.screen.blit(sub, (header.x + 16, header.y + 48))
 
         stats = self.small.render(
-            f"Joueur: {self.player.name}   •   Niveau: {self.player.level}   •   Artefacts: {self.player.artifacts}",
+            f"Joueur: {self.player.name}   •   Artefacts: {self.player.artifacts}   •   Salles finies: {len(self.rooms_done)}/3",
             True,
             (210, 210, 210),
         )
         self.screen.blit(stats, (header.x + 16, header.y + 70))
 
-        # Left panel: rooms
-        self.draw_panel(left, "🧭 Exploration")
-        y = left.y + 52
+        # World panel
+        self.draw_panel(world, "🗺️ Ruines")
 
-        for r in self.rooms:
-            done = "✅" if r.room_id in self.rooms_done else "⬜"
-            is_selected = (r.room_id == self.selected_room_id)
+        # Obstacles
+        for o in self.obstacles:
+            pygame.draw.rect(self.screen, (60, 55, 80), o, border_radius=10)
+            pygame.draw.rect(self.screen, (110, 110, 150), o, width=2, border_radius=10)
 
-            row = pygame.Rect(left.x + 14, y - 6, left.w - 28, 34)
-            if is_selected:
-                pygame.draw.rect(self.screen, (45, 55, 85), row, border_radius=10)
-                pygame.draw.rect(self.screen, (160, 170, 220), row, width=2, border_radius=10)
+        # Doors
+        for rid, door in self.doors.items():
+            room = self.get_room(rid)
+            done = (rid in self.rooms_done)
+            locked = (room.required_artifacts > 0 and self.player.artifacts < room.required_artifacts and not done)
 
-            locked = (
-                r.required_artifacts > 0
-                and r.room_id not in self.rooms_done
-                and self.player.artifacts < r.required_artifacts
-            )
+            bg = (45, 85, 70) if done else (85, 70, 45)
+            if locked:
+                bg = (70, 45, 45)
 
-            lock_txt = ""
-            if r.required_artifacts > 0 and r.room_id not in self.rooms_done:
-                lock_txt = f"🔒 {r.required_artifacts} artefacts"
+            pygame.draw.rect(self.screen, bg, door, border_radius=12)
+            pygame.draw.rect(self.screen, (200, 200, 200), door, width=2, border_radius=12)
 
-            line = f"{done}  Salle {r.room_id}"
-            name = (
-                r.name.replace("Salle I — ", "")
-                .replace("Salle II — ", "")
-                .replace("Salle III — ", "")
-            )
+            label = f"Salle {rid} ✅" if done else f"Salle {rid}"
+            if locked:
+                label += " 🔒"
 
-            l1 = self.small.render(line, True, (235, 235, 235))
-            l2 = self.small.render(name, True, (205, 205, 205))
-            self.screen.blit(l1, (left.x + 26, y))
-            self.screen.blit(l2, (left.x + 140, y))
+            txt = self.small.render(label, True, (245, 245, 245))
+            self.screen.blit(txt, (door.x + 10, door.y + 18))
 
-            if lock_txt:
-                c = (255, 210, 150) if locked else (180, 180, 180)
-                l3 = self.small.render(lock_txt, True, c)
-                self.screen.blit(l3, (left.x + 26, y + 18))
+        # Character sprite
+        arch_r = self.arch.rect()
+        self.screen.blit(self.arch_img, arch_r.topleft)
 
-            y += 44
-
-        tip = self.small.render(
-            "Astuce: termine les salles pour reconstituer la civilisation.",
-            True,
-            (170, 170, 170),
-        )
-        self.screen.blit(tip, (left.x + 16, left.y + left.h - 32))
-
-        # Main panel
-        if self.state == "VICTORY":
-            self.draw_panel(main, "🏛️ Résultat")
-            v1 = self.font.render("Victoire ! Civilisation reconstituée.", True, (200, 245, 200))
-            v2 = self.small.render("Entrée : revenir au camp   |   ESC : quitter", True, (190, 190, 190))
-            self.screen.blit(v1, (main.x + 16, main.y + 70))
-            self.screen.blit(v2, (main.x + 16, main.y + 110))
-
-        elif self.state == "ENIGMA":
-            room = self.get_room(self.selected_room_id)
+        # Enigma overlay
+        if self.state == "ENIGMA":
+            main = pygame.Rect(420, 140, self.WIDTH - 460, 280)
             self.draw_panel(main, "🧩 Énigme mythologique")
+            room = self.get_room(self.selected_room_id)
 
             t = self.font.render(room.enigma.title, True, (240, 220, 160))
             self.screen.blit(t, (main.x + 16, main.y + 54))
@@ -308,27 +331,14 @@ class Game:
             hint = self.small.render("TAB = indice  •  Entrée = valider", True, (175, 175, 175))
             self.screen.blit(hint, (main.x + 16, main.y + 255))
 
-        else:
-            self.draw_panel(main, "📜 Briefing")
-            room = self.get_room(self.selected_room_id)
-
-            p1 = "Choisis une salle à explorer. Chaque énigme résolue te donne un artefact."
-            p2 = "Certaines portes sont scellées et nécessitent un nombre d’artefacts."
-            p3 = f"Salle sélectionnée : {room.name}"
-
-            yy = main.y + 70
-            for para in (p1, p2, p3):
-                for ln in self.wrap_text(para, main.w - 32, self.small):
-                    self.screen.blit(self.small.render(ln, True, (225, 225, 225)), (main.x + 16, yy))
-                    yy += 22
-                yy += 10
-
-            cta = self.small.render(
-                "Appuie sur E pour entrer dans la salle sélectionnée.",
-                True,
-                (190, 190, 190),
-            )
-            self.screen.blit(cta, (main.x + 16, main.y + main.h - 46))
+        # Victory overlay
+        if self.state == "VICTORY":
+            box = pygame.Rect(220, 180, 460, 180)
+            self.draw_panel(box, "🏛️ Résultat")
+            v1 = self.font.render("Victoire ! Civilisation reconstituée.", True, (200, 245, 200))
+            v2 = self.small.render("Entrée : continuer à explorer | ESC : quitter", True, (190, 190, 190))
+            self.screen.blit(v1, (box.x + 16, box.y + 70))
+            self.screen.blit(v2, (box.x + 16, box.y + 110))
 
         # Footer feedback
         if self.feedback:

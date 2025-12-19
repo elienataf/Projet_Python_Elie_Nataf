@@ -9,5 +9,9 @@
   "rooms_done": [
     1
   ],
-  "selected_room_id": 3
+  "selected_room_id": 2,
+  "archaeologist": {
+    "x": 174.0,
+    "y": 305.6
+  }
 }
