@@ -9,7 +9,8 @@
   "rooms_done": [],
   "selected_room_id": 1,
   "archaeologist": {
-    "x": 583.0,
-    "y": 313.0
-  }
+    "x": 645.0,
+    "y": 295
+  },
+  "score": 0
 }
