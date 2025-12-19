@@ -2,8 +2,12 @@
   "player": {
     "name": "Explorateur",
     "level": 4,
-    "artifacts": 9,
+    "artifacts": 10,
     "rooms_unlocked": 2
   },
-  "enigma_done": true
+  "enigma_done": true,
+  "rooms_done": [
+    1
+  ],
+  "selected_room_id": 3
 }
