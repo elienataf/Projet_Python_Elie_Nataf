@@ -1,17 +1,15 @@
 {
   "player": {
     "name": "Explorateur",
-    "level": 4,
-    "artifacts": 10,
-    "rooms_unlocked": 2
+    "level": 1,
+    "artifacts": 0,
+    "rooms_unlocked": 1
   },
   "enigma_done": true,
-  "rooms_done": [
-    1
-  ],
-  "selected_room_id": 2,
+  "rooms_done": [],
+  "selected_room_id": 1,
   "archaeologist": {
-    "x": 174.0,
-    "y": 305.6
+    "x": 583.0,
+    "y": 313.0
   }
 }

@@ -21,27 +21,27 @@ def enigma_sphinx() -> Enigma:
     return Enigma(
         title="Salle I — Le Sphinx",
         question=(
-            "Je marche à quatre pattes le matin, à deux le midi et à trois le soir. "
-            "Qui suis-je ?"
+            "Dans le désert égyptien, je pointe vers le ciel, gardienne de pharaons et de mystères éternels. "
+            ". Qu'est-ce que je suis ?"
         ),
-        answers=("l'homme", "homme", "un homme", "être humain", "etre humain", "humain"),
-        hint="C'est lié aux étapes de la vie (bébé, adulte, vieillesse).",
+        answers=("Une pyramide", "pyramide", "une pyramide"),
+        hint="Je suis une structure emblématique d'Égypte.",
     )
 
 
 def enigma_icarus() -> Enigma:
     return Enigma(
         title="Salle II — Les Ailes de Cire",
-        question="Quel héros grec est tombé dans la mer après s'être approché trop près du soleil ?",
-        answers=("icare", "icarus", "icar"),
-        hint="Son père est Dédale.",
+        question="Cité perdue des Incas, perchée dans les Andes, révélée au monde en 1911. Quel est son nom ?",
+        answers=("Machu Picchu", "machu picchu", "Machu picchu"),
+        hint="Je suis une ancienne cité inca célèbre.",
     )
 
 
 def enigma_anubis() -> Enigma:
     return Enigma(
         title="Salle III — La Balance des Âmes",
-        question="Dans la mythologie égyptienne, quel dieu à tête de chacal est lié à l'embaumement ?",
-        answers=("anubis",),
-        hint="On le voit souvent près des momies.",
+        question="Écriture antique des Mayas, gravée sur pierre, qui raconte guerres et rois sans un son. Qu'est-ce que je suis ?",
+        answers=("Hiéroglyphes", "hiéroglyphes", "hiéroglyphe"),
+        hint="Je suis un système d'écriture ancien.",
     )
