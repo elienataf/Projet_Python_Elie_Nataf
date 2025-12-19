@@ -21,10 +21,11 @@ def enigma_sphinx() -> Enigma:
     return Enigma(
         title="Salle I — Le Sphinx",
         question=(
-            "Dans le désert égyptien, je pointe vers le ciel, gardienne de pharaons et de mystères éternels. "
-            ". Qu'est-ce que je suis ?"
+            "Dans le désert égyptien, je pointe vers le ciel, "
+            "gardienne de pharaons et de mystères éternels. "
+            "Qu'est-ce que je suis ?"
         ),
-        answers=("Une pyramide", "pyramide", "une pyramide"),
+        answers=("une pyramide", "pyramide"),
         hint="Je suis une structure emblématique d'Égypte.",
     )
 
@@ -32,8 +33,11 @@ def enigma_sphinx() -> Enigma:
 def enigma_icarus() -> Enigma:
     return Enigma(
         title="Salle II — Les Ailes de Cire",
-        question="Cité perdue des Incas, perchée dans les Andes, révélée au monde en 1911. Quel est son nom ?",
-        answers=("Machu Picchu", "machu picchu", "Machu picchu"),
+        question=(
+            "Cité perdue des Incas, perchée dans les Andes, révélée au monde en 1911. "
+            "Quel est son nom ?"
+        ),
+        answers=("machu picchu",),
         hint="Je suis une ancienne cité inca célèbre.",
     )
 
@@ -41,7 +45,10 @@ def enigma_icarus() -> Enigma:
 def enigma_anubis() -> Enigma:
     return Enigma(
         title="Salle III — La Balance des Âmes",
-        question="Écriture antique des Mayas, gravée sur pierre, qui raconte guerres et rois sans un son. Qu'est-ce que je suis ?",
-        answers=("Hiéroglyphes", "hiéroglyphes", "hiéroglyphe"),
+        question=(
+            "Écriture antique, gravée sur pierre, qui raconte guerres et rois sans un son. "
+            "Qu'est-ce que je suis ?"
+        ),
+        answers=("hiéroglyphes", "hiéroglyphe"),
         hint="Je suis un système d'écriture ancien.",
     )

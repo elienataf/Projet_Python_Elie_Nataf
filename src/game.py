@@ -125,6 +125,24 @@ class Game:
     def all_rooms_done(self) -> bool:
         return all(r.room_id in self.rooms_done for r in self.rooms)
 
+    def wrap_text(self, text: str, max_width: int, font: pygame.font.Font) -> list[str]:
+        words = text.split()
+        lines = []
+        current = ""
+        for w in words:
+            test = (current + " " + w).strip()
+            if font.size(test)[0] <= max_width:
+                current = test
+            else:
+                if current:
+                    lines.append(current)
+                current = w
+        if current:
+            lines.append(current)
+        return lines
+
+
+
     def handle_events(self) -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -202,6 +220,7 @@ class Game:
             self.state = "EXPLORE"
             if self.all_rooms_done():
                 self.state = "VICTORY"
+                self.end_time = (pygame.time.get_ticks() - self.start_ticks) // 1000
             self.save()
         else:
             self.score -= 5
@@ -287,9 +306,14 @@ class Game:
             self.screen.blit(t, (box.x + 16, box.y + 16))
 
             y = box.y + 50
-            for line in room.enigma.question.split("\n"):
+            for line in self.wrap_text(room.enigma.question, box.w - 32, self.small):
                 self.screen.blit(self.small.render(line, True, (230, 230, 230)), (box.x + 16, y))
                 y += 22
+
+            help_txt = self.small.render("TAB: indice | F1: réponse | F2: quitter | Entrée: valider", True, (175, 175, 175))
+            self.screen.blit(help_txt, (box.x + 16, box.y + box.h - 95))
+    
+
 
             inp = pygame.Rect(box.x + 16, box.y + box.h - 60, box.w - 32, 44)
             pygame.draw.rect(self.screen, (20, 22, 35), inp, border_radius=12)
@@ -301,6 +325,12 @@ class Game:
             pygame.draw.rect(self.screen, (28, 30, 48), box, border_radius=16)
             pygame.draw.rect(self.screen, (90, 95, 130), box, 2, border_radius=16)
             self.screen.blit(self.font.render("Victoire !", True, (200, 245, 200)), (box.x + 16, box.y + 60))
+            msg = f"Vous avez terminé en {self.end_time}s avec {self.score} points"
+            msg_surface = self.small.render(msg, True, (230, 230, 230))
+            self.screen.blit(msg_surface, (box.x + 16, box.y + 110))
+            hint = self.small.render("Appuyez sur ENTRÉE pour revenir à la map", True, (180, 180, 180))
+            self.screen.blit(hint, (box.x + 16, box.y + 145))
+
 
         if self.feedback:
             self.screen.blit(self.small.render(self.feedback, True, (230, 230, 230)), (footer.x + 8, footer.y))
